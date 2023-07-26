@@ -7,57 +7,79 @@ import "./AddEdit.css";
 const initialState = {
   name: "",
   email: "",
-  contact: "",
+  gender: "",
+  status: "active",
 };
+
 const AddEdit = () => {
   const [state, setState] = useState(initialState);
-
-  const { name, email, contact } = state;
-
+  const { name, email, gender, status } = state;
   const navigate = useNavigate();
-
-  const {id} = useParams();
+  const { id } = useParams();
 
   useEffect(() => {
-    axios.get(`http://localhost:8000/api/get/${id}`)
-    .then((resp) => setState({...resp.data[0] }));
-
-  },[id]) 
+    if (id) {
+      axios
+        .get(`https://gorest.co.in/public/v2/users/${id}`)
+        .then((resp) => {
+          const { name, email, gender, status } = resp.data;
+          setState({
+            name: name || "",
+            email: email || "",
+            gender: gender || "",
+            status: status || "active",
+          });
+        })
+        .catch((err) => console.error("Error fetching user details:", err));
+    }
+  }, [id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name || !email || !contact) {
-      toast.error("Please provide value into each input fields");
-    } else {
-      if(!id) {
-        axios
-        .post("http://localhost:8000/api/post", {
-          name,
-          email,
-          contact,
-        })
-        .then(() => {
-          setState({ name: "", email: "", contact: "" });
-        })
-        .catch((err) => toast.error(err.response.data));
-        toast.success("Contact Added Successfully")
-      } else {
-        axios
-        .put(`http://localhost:8000/api/update/${id}`, {
-          name,
-          email,
-          contact,
-        })
-        .then(() => {
-          setState({ name: "", email: "", contact: "" });
-        })
-        .catch((err) => toast.error(err.response.data));
-        toast.success("Contact Updated Successfully")
-      }
-      
-        setTimeout(() => navigate("/"), 500);
+    if (!name || !email || !gender) {
+      toast.error("Please provide values for each input field");
+      return;
     }
+
+    if (!id) {
+      // Creating a new user
+      axios
+        .post("https://gorest.co.in/public/v2/users", {
+          name,
+          email,
+          gender,
+          status,
+        })
+        .then((response) => {
+          setState(initialState);
+          toast.success("Contact Added Successfully");
+        })
+        .catch((err) => {
+          console.error("Error creating user:", err);
+          toast.error("Error creating user. Please try again later.");
+        });
+    } else {
+      // Updating an existing user
+      axios
+        .put(`https://gorest.co.in/public/v2/users/${id}`, {
+          name,
+          email,
+          gender,
+          status,
+        })
+        .then(() => {
+          setState(initialState);
+          toast.success("Contact Updated Successfully");
+        })
+        .catch((err) => {
+          console.error("Error updating user:", err);
+          toast.error("Error updating user. Please try again later.");
+        });
+    }
+
+    setTimeout(() => navigate("/"), 500);
   };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setState({ ...state, [name]: value });
@@ -80,7 +102,7 @@ const AddEdit = () => {
           id="name"
           name="name"
           placeholder="Your Name ..."
-          value={name || ""}
+          value={name}
           onChange={handleInputChange}
         />
         <label htmlFor="email">Email</label>
@@ -89,16 +111,16 @@ const AddEdit = () => {
           id="email"
           name="email"
           placeholder="Your Email ..."
-          value={email || ""}
+          value={email}
           onChange={handleInputChange}
         />
-        <label htmlFor="contact">Contact</label>
+        <label htmlFor="gender">Gender</label>
         <input
-          type="number"
-          id="contact"
-          name="contact"
-          placeholder="Your Contact No ..."
-          value={contact || ""}
+          type="text"
+          id="gender"
+          name="gender"
+          placeholder="Your Gender ..."
+          value={gender}
           onChange={handleInputChange}
         />
         <input type="submit" value={id ? "Update" : "Save"} />

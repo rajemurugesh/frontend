@@ -5,70 +5,87 @@ import axios from 'axios';
 import './Home.css';
 
 const Home = () => {
-  const [data, setData] = useState([]);
-
-  const loadData = async () => {
-    try {
-      const response = await axios.get("http://localhost:8000/api/get");
-      setData(response.data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error fetching data. Please try again later.");
-    }
-  };
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    loadData();
+    const fetchUsers = async () => {
+      try {
+        const accessToken = '276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7'; // Replace this with your actual access token
+
+        // Set up the Axios interceptor to add the access token to each request
+        axios.interceptors.request.use(
+          (config) => {
+            config.headers.Authorization = `Bearer ${accessToken}`;
+            return config;
+          },
+          (error) => {
+            return Promise.reject(error);
+          }
+        );
+
+        const response = await axios.get('https://gorest.co.in/public/v2/users');
+        const data = response.data;
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Error fetching data. Please try again later.');
+      }
+    };
+
+    fetchUsers();
   }, []);
 
-  const deleteContact = (id) => {
-    if (window.confirm("Are you sure want to delete the contact?")) {
-      axios
-        .delete(`http://localhost:8000/api/delete/${id}`)
-        toast.success("Contact Deleted Successfully");
-        setTimeout(()=> loadData(), 500);
+  const deleteContact = async (id) => {
+    if (window.confirm('Are you sure you want to delete the contact?')) {
+      try {
+        await axios.delete(`https://gorest.co.in/public/v2/users/${id}`);
+        toast.success('Contact Deleted Successfully');
+        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Error deleting contact. Please try again later.');
+      }
     }
   };
 
   return (
-    <div style={{ marginTop: "150px" }}>
+    <div style={{ marginTop: '150px' }}>
       <Link to="/addContact">
-        <button className='btn btn-contact'>Add Contact</button>
+        <button className="btn btn-contact">Add Contact</button>
       </Link>
       <table className="styled-table">
         <thead>
           <tr>
-            <th style={{ textAlign: "center" }}>No.</th>
-            <th style={{ textAlign: "center" }}>Name</th>
-            <th style={{ textAlign: "center" }}>Email</th>
-            <th style={{ textAlign: "center" }}>Contact</th>
-            <th style={{ textAlign: "center" }}>Action</th>
+            <th style={{ textAlign: 'center' }}>ID</th>
+            <th style={{ textAlign: 'center' }}>Name</th>
+            <th style={{ textAlign: 'center' }}>Email</th>
+            <th style={{ textAlign: 'center' }}>Gender</th>
+            <th style={{ textAlign: 'center' }}>Status</th>
+            <th style={{ textAlign: 'center' }}>Action</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item, index) => {
-            return (
-              <tr key={item.id}>
-                <th scope="row">{index + 1}</th>
-                <td>{item.name}</td>
-                <td>{item.email}</td>
-                <td>{item.contact}</td>
-                <td>
-                  <Link to={`/update/${item.id}`}>
-                    <button className='btn btn-edit'>Edit</button>
-                  </Link>
-                  <Link to={`/view/${item.id}`}>
-                    <button className='btn btn-view'>View</button>
-                  </Link>
+          {users?.map((user) => (
+            <tr key={user.id}>
+              <td>{user.id}</td>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.gender}</td>
+              <td>{user.status}</td>
+              <td>
+                <Link to={`/update/${user.id}`}>
+                  <button className="btn btn-edit">Edit</button>
+                </Link>
+                <Link to={`/view/${user.id}`}>
+                  <button className="btn btn-view">View</button>
+                </Link>
 
-                  <button className='btn btn-delete' onClick={() => deleteContact(item.id)}>
-                    Delete
-                  </button>
-              
-                </td>
-              </tr>
-            );
-          })}
+                <button className="btn btn-delete" onClick={() => deleteContact(user.id)}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

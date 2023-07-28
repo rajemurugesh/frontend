@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-toastify";
 import "./AddEdit.css";
 
@@ -19,72 +18,135 @@ const AddEdit = () => {
 
   useEffect(() => {
     if (id) {
-      axios
-        .get(`https://gorest.co.in/public/v2/users/${id}`)
-        .then((resp) => {
-          const { name, email, gender, status } = resp.data;
+      const fetchUserDetails = async () => {
+        try {
+          const url = `https://gorest.co.in/public/v2/users/${id}`;
+          const accessToken = "276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7"; // Replace with your actual access token
+  
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+  
+          if (!response.ok) {
+            // Handle 404 error when user is not found
+            if (response.status === 404) {
+              console.log("User not found");
+              // You can set state or display an error message here if needed
+              return;
+            }
+            throw new Error("Network response was not ok");
+          }
+  
+          const data = await response.json();
+          const { name, email, gender, status } = data;
           setState({
             name: name || "",
             email: email || "",
             gender: gender || "",
             status: status || "active",
           });
-        })
-        .catch((err) => console.error("Error fetching user details:", err));
+        } catch (error) {
+          console.error("Error fetching user details:", error);
+        }
+      };
+  
+      fetchUserDetails();
     }
   }, [id]);
+  
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name || !email || !gender) {
-      toast.error("Please provide values for each input field");
-      return;
-    }
+  
 
-    if (!id) {
-      // Creating a new user
-      axios
-        .post("https://gorest.co.in/public/v2/users", {
+  const handleCreateUser = async () => {
+    try {
+      if (!name || !email || !gender) {
+        toast.error("Please provide values for each input field");
+        return;
+      }
+  
+      const url = "https://gorest.co.in/public/v2/users";
+      const accessToken = "276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7"; // Replace with your actual access token
+  
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
           name,
           email,
           gender,
           status,
-        })
-        .then((response) => {
-          setState(initialState);
-          toast.success("Contact Added Successfully");
-        })
-        .catch((err) => {
-          console.error("Error creating user:", err);
-          toast.error("Error creating user. Please try again later.");
-        });
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to create user. Please try again later.");
+      }
+  
+      const data = await response.json();
+      console.log("User created successfully:", data);
+      setState(initialState);
+      toast.success("Contact created successfully");
+      setTimeout(() => navigate("/"), 500);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast.error(error.message || "Error creating user. Please try again later.");
+    }
+  };
+  
+  
+
+  const handleUpdateUser = async () => {
+    try {
+      const accessToken = "276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7";
+      const response = await fetch(`https://gorest.co.in/public/v2/users/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          gender,
+          status,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      setState(initialState);
+      toast.success("Contact updated successfully");
+      setTimeout(() => navigate("/"), 500);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Error updating user. Please try again later.");
+    }
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (id) {
+      handleUpdateUser();
     } else {
-      // Updating an existing user
-      axios
-        .put(`https://gorest.co.in/public/v2/users/${id}`, {
-          name,
-          email,
-          gender,
-          status,
-        })
-        .then(() => {
-          setState(initialState);
-          toast.success("Contact Updated Successfully");
-        })
-        .catch((err) => {
-          console.error("Error updating user:", err);
-          toast.error("Error updating user. Please try again later.");
-        });
+      handleCreateUser();
     }
-
-    setTimeout(() => navigate("/"), 500);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setState({ ...state, [name]: value });
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setState((prevState) => ({
+      ...prevState,
+      [name]: value,
+    }));
   };
-
   return (
     <div style={{ marginTop: "100px" }}>
       <form

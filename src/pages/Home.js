@@ -1,91 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import axios from 'axios';
 import './Home.css';
 
 const Home = () => {
+  const url = "https://gorest.co.in/public/v2/users";
+  const accessToken = '276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7'; // Replace with your actual access token
   const [users, setUsers] = useState([]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const accessToken = '276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7'; // Replace this with your actual access token
+  const loadData = async () => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-        // Set up the Axios interceptor to add the access token to each request
-        axios.interceptors.request.use(
-          (config) => {
-            config.headers.Authorization = `Bearer ${accessToken}`;
-            return config;
-          },
-          (error) => {
-            return Promise.reject(error);
-          }
-        );
-
-        const response = await axios.get('https://gorest.co.in/public/v2/users');
-        const data = response.data;
-        setUsers(data);
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        toast.error('Error fetching data. Please try again later.');
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
       }
-    };
 
-    fetchUsers();
-  }, []);
-
-  const deleteContact = async (id) => {
-    if (window.confirm('Are you sure you want to delete the contact?')) {
-      try {
-        await axios.delete(`https://gorest.co.in/public/v2/users/${id}`);
-        toast.success('Contact Deleted Successfully');
-        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== id));
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        toast.error('Error deleting contact. Please try again later.');
-      }
+      const data = await response.json();
+      console.log('API Response data:', data);
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error("Error fetching data. Please try again later.");
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const deleteContact = async (id) => {
+    if (window.confirm("Are you sure want to delete the contact?")) {
+      try {
+        const accessToken = "276286154fd86d13d2931acada16d082eb429ee338c6764a41e597d33c6ccec7";
+        const response = await fetch(`https://gorest.co.in/public/v2/users/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error("Failed to delete contact. Please try again later.");
+        }
+  
+        toast.success("Contact Deleted Successfully");
+        setTimeout(loadData, 500);
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error(error.message || "Error deleting user. Please try again later.");
+      }
+    }
+  };
+  
+
   return (
-    <div style={{ marginTop: '150px' }}>
+    <div style={{ marginTop: "150px" }}>
       <Link to="/addContact">
-        <button className="btn btn-contact">Add Contact</button>
+        <button className='btn btn-contact'>Add Contact</button>
       </Link>
       <table className="styled-table">
         <thead>
           <tr>
-            <th style={{ textAlign: 'center' }}>ID</th>
-            <th style={{ textAlign: 'center' }}>Name</th>
-            <th style={{ textAlign: 'center' }}>Email</th>
-            <th style={{ textAlign: 'center' }}>Gender</th>
-            <th style={{ textAlign: 'center' }}>Status</th>
+            <th style={{ textAlign: "center" }}>ID:</th>
+            <th style={{ textAlign: "center" }}>Name</th>
+            <th style={{ textAlign: "center" }}>Email</th>
+            <th style={{ textAlign: "center" }}>Gender</th>
+            <th style={{ textAlign: "center" }}>Status</th>
             <th style={{ textAlign: 'center' }}>Action</th>
           </tr>
         </thead>
         <tbody>
-          {users?.map((user) => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.gender}</td>
-              <td>{user.status}</td>
-              <td>
-                <Link to={`/update/${user.id}`}>
-                  <button className="btn btn-edit">Edit</button>
-                </Link>
-                <Link to={`/view/${user.id}`}>
-                  <button className="btn btn-view">View</button>
-                </Link>
-
-                <button className="btn btn-delete" onClick={() => deleteContact(user.id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+          {users.map((user) => {
+            return (
+              <tr key={user.id}>
+                <td>{user.id}</td>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{user.gender}</td>
+                <td>{user.status}</td>
+                <td>
+                  <Link to={`/update/${user.id}`}>
+                    <button className='btn btn-edit'>Edit</button>
+                  </Link>
+                  <Link to={`/view/${user.id}`}>
+                    <button className='btn btn-view'>View</button>
+                  </Link>
+                  <button className='btn btn-delete' onClick={() => deleteContact(user.id)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
